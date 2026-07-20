@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ZenSprint Alarm Test</title>
+  <style>
+    body { background: #0f172a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    h1 { font-size: 2rem; }
+    #status { font-size: 1.5rem; margin: 20px 0; padding: 20px 40px; border-radius: 16px; font-weight: bold; }
+    .armed { background: #065f46; border: 2px solid #10b981; }
+    .not-armed { background: #7f1d1d; border: 2px solid #ef4444; }
+    .alarming { background: #dc2626; border: 2px solid #fca5a5; animation: pulse 0.5s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+    button { padding: 16px 32px; font-size: 1.2rem; border-radius: 12px; border: none; cursor: pointer; margin: 10px; font-weight: bold; }
+    #armBtn { background: #10b981; color: white; }
+    #log { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-top: 20px; width: 500px; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px; }
+    .instructions { text-align: center; color: #94a3b8; max-width: 500px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <h1>🔊 ZenSprint Alarm Test</h1>
+  
+  <div id="status" class="not-armed">NOT ARMED — Click button below</div>
+  
+  <button id="armBtn" onclick="armAlarm()">🔒 CLICK HERE TO ARM ALARM</button>
+
+  <div class="instructions">
+    <p><strong>Step 1:</strong> Click the green button above (this arms the silent oscillator)</p>
+    <p><strong>Step 2:</strong> Switch to another tab</p>
+    <p><strong>Step 3:</strong> You should hear a loud alarm tone continuously</p>
+    <p><strong>Step 4:</strong> Come back to this tab — alarm stops</p>
+  </div>
+
+  <div id="log"></div>
+
+  <script>
+    let audioCtx = null;
+    let gainNode = null;
+    let osc1 = null;
+    let osc2 = null;
+    let armed = false;
+
+    function log(msg) {
+      const el = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      el.innerHTML = `<div>[${time}] ${msg}</div>` + el.innerHTML;
+      console.log(msg);
+    }
+
+    function armAlarm() {
+      try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        log("AudioContext created, state: " + audioCtx.state);
+
+        if (audioCtx.state === "suspended") {
+          audioCtx.resume().then(() => log("AudioContext resumed"));
+        }
+
+        // Create gain node at 0 (silent)
+        gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.connect(audioCtx.destination);
+
+        // Oscillator 1: 880Hz
+        osc1 = audioCtx.createOscillator();
+        osc1.type = "sawtooth";
+        osc1.frequency.setValueAtTime(880, audioCtx.currentTime);
+        osc1.connect(gainNode);
+        osc1.start();
+
+        // Oscillator 2: 885Hz (beating effect)
+        osc2 = audioCtx.createOscillator();
+        osc2.type = "sawtooth";
+        osc2.frequency.setValueAtTime(885, audioCtx.currentTime);
+        osc2.connect(gainNode);
+        osc2.start();
+
+        armed = true;
+        document.getElementById('status').textContent = "✅ ARMED — Now switch tabs!";
+        document.getElementById('status').className = "armed";
+        document.getElementById('armBtn').textContent = "✅ ARMED — Now switch tabs to test";
+        document.getElementById('armBtn').disabled = true;
+
+        log("✅ Oscillators started at gain=0 (silent). Armed and ready!");
+      } catch (e) {
+        log("❌ ERROR arming: " + e.message);
+      }
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (!armed) {
+        log("Tab switch detected but alarm not armed yet");
+        return;
+      }
+
+      if (document.hidden) {
+        // TAB HIDDEN — turn alarm ON
+        try {
+          gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+          gainNode.gain.setValueAtTime(0.35, audioCtx.currentTime);
+          log("🔴 ALARM ON — gain=0.35, tab hidden");
+          document.getElementById('status').textContent = "🔴 ALARM PLAYING!";
+          document.getElementById('status').className = "alarming";
+        } catch (e) {
+          log("❌ Error turning alarm on: " + e.message);
+        }
+      } else {
+        // TAB VISIBLE — turn alarm OFF
+        try {
+          gainNode.gain.cancelScheduledValues(audioCtx.currentTime);
+          gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.03);
+          log("🟢 ALARM OFF — gain=0, tab visible");
+          document.getElementById('status').textContent = "✅ ARMED — Alarm stopped, switch tabs again to test";
+          document.getElementById('status').className = "armed";
+        } catch (e) {
+          log("❌ Error turning alarm off: " + e.message);
+        }
+      }
+    });
+
+    log("Page loaded. Click the ARM button to start.");
+  </script>
+</body>
+</html>

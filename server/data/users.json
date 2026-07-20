@@ -1,0 +1,20 @@
+[
+  {
+    "_id": "user_1783795764252_mdii",
+    "username": "tester_ib49xs",
+    "password": "$2b$10$DEAg1JR5DLixxedfWqt1V.flr.3G4X3SQj1QURYvaWF3QGtJgOnGm",
+    "createdAt": "2026-07-11T18:49:24.252Z"
+  },
+  {
+    "_id": "user_1783795829678_rh5o",
+    "username": "diya",
+    "password": "$2b$10$Qj5whsvCvCQfMOxfGakFJu23U7ya7soqfsyxikFc1j6jKNJv7x.aO",
+    "createdAt": "2026-07-11T18:50:29.678Z"
+  },
+  {
+    "_id": "user_1783798181679_6r1f",
+    "username": "vbkbbj",
+    "password": "$2b$10$xajzJLJiAWVICxTKjwC.8uQxfXFXf0m4Ul3ZMj7lex3B2DQtfObUq",
+    "createdAt": "2026-07-11T19:29:41.679Z"
+  }
+]

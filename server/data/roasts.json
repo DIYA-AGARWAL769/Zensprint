@@ -1,0 +1,107 @@
+[
+  {
+    "_id": "preset_1",
+    "text": "Are you actually working or just breathing heavily near the keyboard?",
+    "category": "Rude",
+    "severity": "Mild",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_2",
+    "text": "My grandma writes code faster than you, and she's been dead since 2012.",
+    "category": "Rude",
+    "severity": "Toxic",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_3",
+    "text": "Oh look, another tab opened. Is that for your career search, or are you just giving up?",
+    "category": "Rude",
+    "severity": "Spicy",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_4",
+    "text": "You've been staring at this screen for 20 minutes. The code isn't going to write itself out of fear.",
+    "category": "Rude",
+    "severity": "Toxic",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_5",
+    "text": "Go back to work before I start telling people what's on your search history.",
+    "category": "Rude",
+    "severity": "Spicy",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_6",
+    "text": "A distraction a day keeps the progress away. Literally.",
+    "category": "Funny",
+    "severity": "Mild",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_7",
+    "text": "Focus is hard. Scrolling social media for 3 hours is easy. Choose your hard. Actually, don't choose the second one.",
+    "category": "Funny",
+    "severity": "Mild",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_8",
+    "text": "You are doing great! At getting absolutely nothing done.",
+    "category": "Funny",
+    "severity": "Spicy",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_9",
+    "text": "Your goals are currently crying in the corner. Go comfort them.",
+    "category": "Funny",
+    "severity": "Mild",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_10",
+    "text": "Rumor has it that every time you get distracted, a developer's coffee goes cold. Don't be a coffee murderer.",
+    "category": "Funny",
+    "severity": "Spicy",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_11",
+    "text": "Ah, another break. You must be exhausted from all that thinking about starting to work.",
+    "category": "Satirical",
+    "severity": "Mild",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_12",
+    "text": "Fascinating strategy. Let's see how ignoring your tasks leads to sudden wealth and success.",
+    "category": "Satirical",
+    "severity": "Spicy",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_13",
+    "text": "Revolutionary approach to productivity: the 'do nothing and hope it resolves itself' method.",
+    "category": "Satirical",
+    "severity": "Spicy",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_14",
+    "text": "Truly, your ability to avoid work is an art form. You should put it on your resume.",
+    "category": "Satirical",
+    "severity": "Mild",
+    "isCustom": false
+  },
+  {
+    "_id": "preset_15",
+    "text": "I'm sure that random video about ancient building techniques is crucial to your current goal.",
+    "category": "Satirical",
+    "severity": "Spicy",
+    "isCustom": false
+  }
+]

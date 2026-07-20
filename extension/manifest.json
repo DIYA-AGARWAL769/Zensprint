@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "ZenSprint Focus Cop",
+  "version": "1.4",
+  "description": "Intercepts and redirects distracting websites (YouTube, Reddit, Instagram, LinkedIn, Netflix, etc.) to your ZenSprint deployed host to trigger focus roasts.",
+  "permissions": [
+    "declarativeNetRequest",
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "*://*.youtube.com/*",
+    "*://*.reddit.com/*",
+    "*://*.facebook.com/*",
+    "*://*.twitter.com/*",
+    "*://*.instagram.com/*",
+    "*://*.tiktok.com/*",
+    "*://*.linkedin.com/*",
+    "*://*.netflix.com/*",
+    "*://*.twitch.tv/*",
+    "*://*.discord.com/*",
+    "*://*.pinterest.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://localhost/*",
+        "*://127.0.0.1/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

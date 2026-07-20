@@ -1,0 +1,22 @@
+[
+  {
+    "userId": "user_1783795829678_rh5o",
+    "spiceLevel": "Toxic",
+    "categories": [
+      "Rude",
+      "Funny",
+      "Satirical",
+      "Custom"
+    ]
+  },
+  {
+    "userId": "user_1783798181679_6r1f",
+    "spiceLevel": "Spicy",
+    "categories": [
+      "Rude",
+      "Funny",
+      "Satirical",
+      "Custom"
+    ]
+  }
+]
