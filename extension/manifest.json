@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ZenSprint Focus Cop",
-  "version": "1.5",
+  "version": "1.6",
   "description": "Redirect selected distracting sites to your ZenSprint dashboard during focus sessions.",
   "icons": {
     "16": "icons/icon16.png",

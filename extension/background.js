@@ -6,6 +6,7 @@ const DEFAULT_BLOCKED_DOMAINS = [
 const DEFAULT_ZENSPRINT_URL = "https://zensprint-vy33.vercel.app";
 
 let wasExcused = false;
+let redirectUpdateQueue = Promise.resolve();
 
 async function checkAndRedirectBlockedTabs(zensprintUrl) {
   try {
@@ -30,68 +31,67 @@ async function checkAndRedirectBlockedTabs(zensprintUrl) {
   }
 }
 
-async function updateRedirectRules(zensprintUrl, unblockedSite = "") {
-  try {
-    // 1. Get all current dynamic rules
-    const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
-    const ruleIdsToRemove = existingRules.map((r) => r.id);
+function updateRedirectRules(zensprintUrl, unblockedSite = "") {
+  // Chrome can fire the storage-change and install/startup events together.
+  // Serialize them so two calls cannot both add the same dynamic rule IDs.
+  redirectUpdateQueue = redirectUpdateQueue
+    .then(() => applyRedirectRules(zensprintUrl, unblockedSite))
+    .catch((error) => {
+      console.error("Failed to update redirect rules:", error?.message ?? error);
+    });
+  return redirectUpdateQueue;
+}
 
-    // If URL is empty, just clear rules (unblock sites)
-    if (!zensprintUrl) {
-      await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: ruleIdsToRemove
-      });
-      console.log("ZenSprint dynamic rules cleared (sites unblocked).");
-      return;
+async function applyRedirectRules(zensprintUrl, unblockedSite = "") {
+  const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
+  const ruleIdsToRemove = existingRules.map((rule) => rule.id);
+
+  if (!zensprintUrl) {
+    if (ruleIdsToRemove.length) {
+      await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: ruleIdsToRemove });
     }
-
-    // Filter out the unblocked domain cleanly
-    const cleanUnblocked = unblockedSite ? unblockedSite.toLowerCase().trim() : "";
-    const domainsToBlock = DEFAULT_BLOCKED_DOMAINS.filter((domain) => {
-      if (!cleanUnblocked) return true;
-      return !domain.includes(cleanUnblocked) && !cleanUnblocked.includes(domain);
-    });
-
-    // If no domains are left to block, just clear rules
-    if (domainsToBlock.length === 0) {
-      await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: ruleIdsToRemove
-      });
-      console.log("All blocked domains are currently unblocked.");
-      return;
-    }
-
-    // 2. Generate new rules
-    const newRules = domainsToBlock.map((domain, index) => {
-      const id = index + 1;
-      return {
-        id,
-        priority: 1,
-        action: {
-          type: "redirect",
-          redirect: {
-            url: `${zensprintUrl}/?distracted_by=${domain}`
-          }
-        },
-        condition: {
-          // `||domain` is declarativeNetRequest URL-filter syntax (NOT a match pattern).
-          // `||` anchors at the start of any subdomain, so it matches both
-          // "youtube.com" and "www.youtube.com" without needing *://*.
-          urlFilter: `||${domain}`,
-          resourceTypes: ["main_frame"]
-        }
-      };
-    });
-
-    // 3. Update dynamic rules
-    await chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: ruleIdsToRemove,
-      addRules: newRules
-    });
-    console.log(`ZenSprint dynamic rules updated. Unblocked site: ${unblockedSite || "none"}`);
-  } catch (error) {
-    console.error("Failed to update redirect rules:", error?.message ?? error);
+    console.log("ZenSprint dynamic rules cleared (sites unblocked).");
+    return;
   }
+
+  const cleanUnblocked = unblockedSite ? unblockedSite.toLowerCase().trim() : "";
+  const domainsToBlock = DEFAULT_BLOCKED_DOMAINS.filter((domain) => {
+    if (!cleanUnblocked) return true;
+    return !domain.includes(cleanUnblocked) && !cleanUnblocked.includes(domain);
+  });
+
+  const newRules = domainsToBlock.map((domain, index) => ({
+    id: index + 1,
+    priority: 1,
+    action: {
+      type: "redirect",
+      redirect: { url: `${zensprintUrl}/?distracted_by=${domain}` }
+    },
+    condition: {
+      // `||domain` matches the domain and its subdomains.
+      urlFilter: `||${domain}`,
+      resourceTypes: ["main_frame"]
+    }
+  }));
+
+  const currentById = new Map(existingRules.map((rule) => [rule.id, rule]));
+  const alreadyCurrent = existingRules.length === newRules.length && newRules.every((rule) => {
+    const current = currentById.get(rule.id);
+    return current &&
+      current.priority === rule.priority &&
+      current.action?.type === rule.action.type &&
+      current.action?.redirect?.url === rule.action.redirect.url &&
+      current.condition?.urlFilter === rule.condition.urlFilter &&
+      JSON.stringify(current.condition?.resourceTypes) === JSON.stringify(rule.condition.resourceTypes);
+  });
+
+  if (alreadyCurrent) return;
+
+  await chrome.declarativeNetRequest.updateDynamicRules({
+    removeRuleIds: ruleIdsToRemove,
+    addRules: newRules
+  });
+  console.log(`ZenSprint dynamic rules updated. Unblocked site: ${unblockedSite || "none"}`);
 }
 
 // Listen for updates from storage
