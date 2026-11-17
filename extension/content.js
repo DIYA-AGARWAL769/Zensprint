@@ -1,19 +1,27 @@
 function sendExcuseUpdate() {
-  try {
-    const excusedUntil = localStorage.getItem("zensprint_excused_until");
-    const unblockedSite = localStorage.getItem("zensprint_unblocked_site") || "";
-    chrome.runtime.sendMessage({
+  // Guard: if extension context is invalidated (e.g. after reload), stop silently
+  if (!chrome.runtime?.id) return;
+
+  const excusedUntil = localStorage.getItem("zensprint_excused_until");
+  const unblockedSite = localStorage.getItem("zensprint_unblocked_site") || "";
+
+  chrome.runtime.sendMessage(
+    {
       type: "UPDATE_EXCUSE",
       excusedUntil: excusedUntil ? parseInt(excusedUntil, 10) : 0,
       unblockedSite: unblockedSite
-    });
-  } catch (err) {
-    console.error("ZenSprint content script error:", err);
-  }
+    },
+    () => {
+      // Suppress "Receiving end does not exist" when service worker is sleeping (MV3 normal behaviour)
+      if (chrome.runtime.lastError) {
+        // intentionally ignored
+      }
+    }
+  );
 }
 
 // Initial update on load
 sendExcuseUpdate();
 
-// Poll periodically to keep in sync (lightweight)
-setInterval(sendExcuseUpdate, 1000);
+// Poll every 2s (reduced from 1s to lower overhead)
+setInterval(sendExcuseUpdate, 2000);

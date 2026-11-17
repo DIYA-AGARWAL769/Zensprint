@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Privacy information for ZenSprint and the ZenSprint Focus Cop browser extension.">
+    <title>ZenSprint Privacy Policy</title>
+    <style>
+      :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; background: #080b18; color: #e8eaf2; }
+      body { max-width: 820px; margin: 0 auto; padding: 48px 22px; line-height: 1.65; }
+      h1, h2 { color: white; line-height: 1.2; }
+      h1 { font-size: 2rem; }
+      h2 { margin-top: 2rem; font-size: 1.2rem; }
+      a { color: #a78bfa; }
+      .updated { color: #a3a8b8; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>ZenSprint Privacy Policy</h1>
+      <p class="updated">Effective date: November 18, 2026</p>
+
+      <p>ZenSprint Focus Cop is a Chrome extension that redirects navigation to selected distracting websites to the ZenSprint dashboard. This policy describes what the extension processes and what happens when it works with the dashboard.</p>
+
+      <h2>Information the extension processes</h2>
+      <ul>
+        <li><strong>Selected website domains:</strong> Chrome's redirect rules check navigation to YouTube, Reddit, Facebook, X/Twitter, Instagram, TikTok, LinkedIn, Netflix, Twitch, Discord, and Pinterest. The extension uses the matching domain to redirect to the dashboard with a <code>distracted_by</code> parameter. It does not read page content, form entries, or passwords on those sites.</li>
+        <li><strong>Temporary exception settings:</strong> On the ZenSprint dashboard only, the content script reads the local browser storage values that control an active break and an optionally unblocked site. It checks these values to restore the redirect rules when a break ends.</li>
+        <li><strong>Dashboard address:</strong> The dashboard URL configured in the extension popup is saved in Chrome's local extension storage.</li>
+      </ul>
+
+      <h2>Information sent to ZenSprint</h2>
+      <p>When a redirect opens the dashboard, the matching domain is included in the page address. If you are signed in, the dashboard sends that domain to the ZenSprint backend to create a distraction log associated with your account. The backend records the domain, event time, and the roast shown for that event. The extension does not access your ZenSprint authentication token.</p>
+
+      <h2>Storage, sharing, and retention</h2>
+      <p>The extension stores its dashboard URL in Chrome's local extension storage. Distraction logs and account data are stored by the ZenSprint backend using its hosting and database providers to provide the service. ZenSprint does not sell this information or use it for advertising. Distraction logs can be cleared from the ZenSprint dashboard. Uninstalling the extension removes its local extension storage; it does not delete data already stored in your ZenSprint account.</p>
+
+      <h2>Your choices</h2>
+      <p>You can change the dashboard URL in the extension popup, remove a temporary exception in ZenSprint, clear distraction logs from your account, or disable/uninstall the extension from Chrome. The extension's redirects can be adjusted through the dashboard's extension controls.</p>
+
+      <h2>Contact</h2>
+      <p>For privacy questions or requests, use the support contact provided with the ZenSprint Chrome Web Store listing.</p>
+    </main>
+  </body>
+</html>
