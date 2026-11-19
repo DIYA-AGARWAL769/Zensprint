@@ -183,10 +183,10 @@ export default function RoastModal({
               <button
                 type="button"
                 onClick={handleSubmitExplanation}
-                disabled={!explanationText.trim()}
+                disabled={!explanationText.trim() && excuseDuration <= 0}
                 className="rounded-xl bg-teal-600 hover:bg-teal-700 disabled:bg-slate-800 disabled:text-slate-500 px-5 py-2.5 text-xs font-bold text-white transition cursor-pointer shadow-md flex items-center justify-center gap-1.5"
               >
-                <Send className="h-3.5 w-3.5" /> Submit Excuse & Unlock
+                <Send className="h-3.5 w-3.5" /> {excuseDuration > 0 ? "Start Break & Unlock" : "Submit Excuse & Unlock"}
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { Terminal } from "lucide-react";
 
-export default function ExtensionView() {
+export default function ExtensionView({ blockedDomains, selectedBlockedDomains, onToggleDomain }) {
   return (
     <div className="glass-card mx-auto max-w-4xl rounded-3xl border border-slate-800/80 p-6 shadow-xl md:p-8">
       <div className="mb-6 flex items-center justify-between border-b border-slate-800/80 pb-6">
@@ -19,6 +19,18 @@ export default function ExtensionView() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <section className="space-y-3 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5 md:col-span-2">
+          <h4 className="text-sm font-black text-white">Sites blocked during focus</h4>
+          <p className="text-xs leading-relaxed text-slate-400">Choose which supported sites the extension redirects. Changes sync while this dashboard is open.</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {blockedDomains.map((domain) => (
+              <label key={domain} className="flex items-center gap-2 rounded-xl border border-slate-800 px-3 py-2 text-xs text-slate-200">
+                <input type="checkbox" checked={selectedBlockedDomains.includes(domain)} onChange={() => onToggleDomain(domain)} />
+                {domain}
+              </label>
+            ))}
+          </div>
+        </section>
         <section className="space-y-3 rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5">
           <h4 className="text-sm font-black text-white">Install from Chrome Web Store</h4>
           <p className="text-xs leading-relaxed text-slate-400">

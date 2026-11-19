@@ -154,6 +154,20 @@ export default function Dashboard() {
   const [selectedSiteToUnblock, setSelectedSiteToUnblock] = useState("");
   const [excuseDuration, setExcuseDuration] = useState(0);
   const [excusedTimeLeft, setExcusedTimeLeft] = useState(0);
+  const [selectedBlockedDomains, setSelectedBlockedDomains] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("zensprint_blocked_domains") || "null");
+      return Array.isArray(saved) ? saved.filter((domain) => BLOCKED_DOMAINS.includes(domain)) : BLOCKED_DOMAINS;
+    } catch { return BLOCKED_DOMAINS; }
+  });
+
+  const toggleBlockedDomain = (domain) => {
+    setSelectedBlockedDomains((current) => {
+      const next = current.includes(domain) ? current.filter((item) => item !== domain) : [...current, domain];
+      localStorage.setItem("zensprint_blocked_domains", JSON.stringify(next));
+      return next;
+    });
+  };
 
   // Shop Forms
   const [rewardFormTitle, setRewardFormTitle] = useState("");
@@ -960,7 +974,7 @@ export default function Dashboard() {
 
         {/* --- VIEW 4: EXTENSION SETUP --- */}
         {activeSubTab === "extension" && (
-          <ExtensionView />
+          <ExtensionView blockedDomains={BLOCKED_DOMAINS} selectedBlockedDomains={selectedBlockedDomains} onToggleDomain={toggleBlockedDomain} />
         )}
 
         {/* Glassmorphic Roast & Excuse Modal */}

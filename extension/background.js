@@ -8,7 +8,7 @@ const DEFAULT_ZENSPRINT_URL = "https://zensprint-vy33.vercel.app";
 let wasExcused = false;
 let redirectUpdateQueue = Promise.resolve();
 
-async function checkAndRedirectBlockedTabs(zensprintUrl) {
+async function checkAndRedirectBlockedTabs(zensprintUrl, blockedSites = DEFAULT_BLOCKED_DOMAINS) {
   try {
     if (!zensprintUrl) return;
     const tabs = await chrome.tabs.query({});
@@ -17,8 +17,8 @@ async function checkAndRedirectBlockedTabs(zensprintUrl) {
       // Skip if already on ZenSprint page
       if (tab.url.startsWith(zensprintUrl) || tab.url.includes("distracted_by=")) continue;
 
-      for (const domain of DEFAULT_BLOCKED_DOMAINS) {
-        if (tab.url.includes(domain)) {
+      for (const domain of blockedSites) {
+        if (new URL(tab.url).hostname === domain || new URL(tab.url).hostname.endsWith(`.${domain}`)) {
           const redirectTarget = `${zensprintUrl}/?distracted_by=${domain}`;
           console.log(`Redirecting tab ${tab.id} (${tab.url}) to ${redirectTarget}`);
           chrome.tabs.update(tab.id, { url: redirectTarget });
@@ -31,18 +31,18 @@ async function checkAndRedirectBlockedTabs(zensprintUrl) {
   }
 }
 
-function updateRedirectRules(zensprintUrl, unblockedSite = "") {
+function updateRedirectRules(zensprintUrl, unblockedSite = "", blockedSites = DEFAULT_BLOCKED_DOMAINS, breakActive = false) {
   // Chrome can fire the storage-change and install/startup events together.
   // Serialize them so two calls cannot both add the same dynamic rule IDs.
   redirectUpdateQueue = redirectUpdateQueue
-    .then(() => applyRedirectRules(zensprintUrl, unblockedSite))
+    .then(() => applyRedirectRules(zensprintUrl, unblockedSite, blockedSites, breakActive))
     .catch((error) => {
       console.error("Failed to update redirect rules:", error?.message ?? error);
     });
   return redirectUpdateQueue;
 }
 
-async function applyRedirectRules(zensprintUrl, unblockedSite = "") {
+async function applyRedirectRules(zensprintUrl, unblockedSite = "", blockedSites = DEFAULT_BLOCKED_DOMAINS, breakActive = false) {
   const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
   const ruleIdsToRemove = existingRules.map((rule) => rule.id);
 
@@ -55,9 +55,12 @@ async function applyRedirectRules(zensprintUrl, unblockedSite = "") {
   }
 
   const cleanUnblocked = unblockedSite ? unblockedSite.toLowerCase().trim() : "";
-  const domainsToBlock = DEFAULT_BLOCKED_DOMAINS.filter((domain) => {
+  // A break without a single-site exception unlocks every selected site.
+  // A single-site exception keeps the other selected sites blocked.
+  const domainsToBlock = (breakActive && !cleanUnblocked ? [] : blockedSites).filter((domain) => {
+    if (!DEFAULT_BLOCKED_DOMAINS.includes(domain)) return false;
     if (!cleanUnblocked) return true;
-    return !domain.includes(cleanUnblocked) && !cleanUnblocked.includes(domain);
+    return domain !== cleanUnblocked && !domain.endsWith(`.${cleanUnblocked}`);
   });
 
   const newRules = domainsToBlock.map((domain, index) => ({
@@ -97,21 +100,27 @@ async function applyRedirectRules(zensprintUrl, unblockedSite = "") {
 // Listen for updates from storage
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.zensprintUrl) {
-    updateRedirectRules(changes.zensprintUrl.newValue);
+    chrome.storage.local.get("blockedSites").then((config) => {
+      const blockedSites = Array.isArray(config.blockedSites) ? config.blockedSites : DEFAULT_BLOCKED_DOMAINS;
+      updateRedirectRules(changes.zensprintUrl.newValue, "", blockedSites);
+    });
   }
 });
 
 // On startup/install, check current URL
 chrome.runtime.onInstalled.addListener(async () => {
   await chrome.storage.local.set({ zensprintUrl: DEFAULT_ZENSPRINT_URL });
-  updateRedirectRules(DEFAULT_ZENSPRINT_URL);
+  const config = await chrome.storage.local.get("blockedSites");
+  const blockedSites = Array.isArray(config.blockedSites) ? config.blockedSites : DEFAULT_BLOCKED_DOMAINS;
+  updateRedirectRules(DEFAULT_ZENSPRINT_URL, "", blockedSites);
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   const data = await chrome.storage.local.get("zensprintUrl");
   const zensprintUrl = data.zensprintUrl || DEFAULT_ZENSPRINT_URL;
   if (!data.zensprintUrl) await chrome.storage.local.set({ zensprintUrl });
-  updateRedirectRules(zensprintUrl);
+  const config = await chrome.storage.local.get("blockedSites");
+  updateRedirectRules(zensprintUrl, "", Array.isArray(config.blockedSites) ? config.blockedSites : DEFAULT_BLOCKED_DOMAINS);
 });
 
 // Listen for messages from content scripts
@@ -123,6 +132,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   async function handle() {
     const excusedUntil = message.excusedUntil;
     const unblockedSite = message.unblockedSite || "";
+    const blockedSites = Array.isArray(message.blockedSites)
+      ? message.blockedSites.filter((domain) => DEFAULT_BLOCKED_DOMAINS.includes(domain))
+      : DEFAULT_BLOCKED_DOMAINS;
+    if (Array.isArray(message.blockedSites)) await chrome.storage.local.set({ blockedSites });
     const now = Date.now();
 
     const data = await chrome.storage.local.get("zensprintUrl");
@@ -131,7 +144,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (excusedUntil && excusedUntil > now) {
       wasExcused = true;
       console.log(`User is excused until ${new Date(excusedUntil).toLocaleTimeString()}. Unblocking ONLY: ${unblockedSite || "none"}`);
-      await updateRedirectRules(zensprintUrl, unblockedSite);
+      await updateRedirectRules(zensprintUrl, unblockedSite, blockedSites, true);
 
       // Only recreate alarm if not already scheduled for this exact timestamp
       const existingAlarm = await chrome.alarms.get("excuse-expiry");
@@ -145,10 +158,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         wasExcused = false;
         console.log("Excuse expired! Re-enabling redirect rules & redirecting open blocked tabs.");
         await chrome.alarms.clear("excuse-expiry");
-        await updateRedirectRules(zensprintUrl);
-        await checkAndRedirectBlockedTabs(zensprintUrl);
+        await updateRedirectRules(zensprintUrl, "", blockedSites);
+        await checkAndRedirectBlockedTabs(zensprintUrl, blockedSites);
       } else {
-        await updateRedirectRules(zensprintUrl);
+        await updateRedirectRules(zensprintUrl, "", blockedSites);
       }
     }
     sendResponse({ ok: true });
@@ -165,7 +178,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     console.log("Excuse expired via alarm! Re-enabling redirect rules & redirecting open blocked tabs.");
     const data = await chrome.storage.local.get("zensprintUrl");
     const zensprintUrl = data.zensprintUrl || DEFAULT_ZENSPRINT_URL;
-    await updateRedirectRules(zensprintUrl);
-    await checkAndRedirectBlockedTabs(zensprintUrl);
+    const config = await chrome.storage.local.get("blockedSites");
+    const blockedSites = Array.isArray(config.blockedSites) ? config.blockedSites : DEFAULT_BLOCKED_DOMAINS;
+    await updateRedirectRules(zensprintUrl, "", blockedSites);
+    await checkAndRedirectBlockedTabs(zensprintUrl, blockedSites);
   }
 });
