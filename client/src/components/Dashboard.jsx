@@ -506,10 +506,54 @@ export default function Dashboard() {
   };
 
   const handleSubmitExplanation = async () => {
-    if (!explanationText.trim()) return;
+    if (!explanationText.trim() && excuseDuration <= 0) return;
+    const justification = explanationText.trim() || "Authorized temporary break";
 
     // Stop continuous warning alarm beep on unlock
     stopContinuousAlarm();
+
+    // Starting a timed break is a local focus-control action. It must not wait
+    // for the shame API, which can fail or have no logId for system notices.
+    if (excuseDuration > 0) {
+      const until = Date.now() + excuseDuration * 60 * 1000;
+      const siteToUnblock = selectedSiteToUnblock || activeRoast?.blockedSite || "";
+      setExcusedUntil(until);
+      setExcusedReason(justification);
+      setExcusedTimeLeft(excuseDuration * 60);
+      setUnblockedSite(siteToUnblock);
+      localStorage.setItem("zensprint_excused_until", until.toString());
+      localStorage.setItem("zensprint_excused_reason", justification);
+      localStorage.setItem("zensprint_unblocked_site", siteToUnblock);
+      setSuccessMessage(siteToUnblock
+        ? `Break started for ${excuseDuration} minutes. ${siteToUnblock} is unblocked.`
+        : `Break started for ${excuseDuration} minutes. Selected blockers are paused.`);
+      setActiveRoast(null);
+      setExplanationText("");
+      setExcuseDuration(0);
+      setSelectedSiteToUnblock("");
+      triggerConfetti();
+
+      // Save the excuse when there is a real shame log, without blocking the
+      // break UI on a network request. System notices may not have a logId.
+      if (activeRoast?.logId) {
+        apiFetch("/shame/explain", {
+          method: "POST",
+          body: {
+            logId: activeRoast.logId,
+            choreId: activeRoast.choreId,
+            explanation: justification
+          }
+        }).then(fetchData).catch((err) => {
+          console.error("Break started, but the excuse could not be saved:", err);
+        });
+      }
+      return;
+    }
+
+    if (!activeRoast?.logId) {
+      setSuccessMessage("This notice has no distraction report to attach an excuse to. Choose a break duration to unlock sites.");
+      return;
+    }
 
     try {
       const res = await apiFetch("/shame/explain", {
@@ -517,28 +561,12 @@ export default function Dashboard() {
         body: {
           logId: activeRoast.logId,
           choreId: activeRoast.choreId,
-          explanation: explanationText
+          explanation: justification
         }
       });
       await res.json();
       
       let message = "Justification accepted. The shame chore has been waived!";
-      if (excuseDuration > 0) {
-        const until = Date.now() + excuseDuration * 60 * 1000;
-        setExcusedUntil(until);
-        setExcusedReason(explanationText);
-        localStorage.setItem("zensprint_excused_until", until.toString());
-        localStorage.setItem("zensprint_excused_reason", explanationText);
-
-        const siteToUnblock = activeRoast.blockedSite || selectedSiteToUnblock || "";
-        setUnblockedSite(siteToUnblock);
-        localStorage.setItem("zensprint_unblocked_site", siteToUnblock);
-
-        message = siteToUnblock 
-          ? `Justification accepted. Excused for ${excuseDuration} mins. ${siteToUnblock} is unblocked.` 
-          : `Justification accepted. Excused for ${excuseDuration} mins.`;
-      }
-      
       setSuccessMessage(message);
       setActiveRoast(null);
       setExplanationText("");
